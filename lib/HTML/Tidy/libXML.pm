@@ -1,5 +1,5 @@
 #
-# $Id: libXML.pm,v 0.1 2009/02/21 11:18:30 dankogai Exp dankogai $
+# $Id: libXML.pm,v 0.2 2009/02/21 11:47:58 dankogai Exp dankogai $
 #
 package HTML::Tidy::libXML;
 use warnings;
@@ -7,7 +7,7 @@ use strict;
 use Encode;
 use XML::LibXML;
 
-our $VERSION = sprintf "%d.%02d", q$Revision: 0.1 $ =~ /(\d+)/g;
+our $VERSION = sprintf "%d.%02d", q$Revision: 0.2 $ =~ /(\d+)/g;
 
 sub new {
     my $class = shift;
@@ -25,10 +25,8 @@ sub html2dom {
     $self->{lx}->parse_html_string($html);
 }
 
-sub html2xml {
-    my ( $self, $html, $encoding, $level ) = @_;
-    $level ||= 0;
-    my $dom = $self->html2dom( $html, $encoding );
+sub dom2xml {
+    my ($self, $dom, $level) = @_;
     my $root = $dom->findnodes('/html')->shift;
     $root->setAttribute( xmlns => 'http://www.w3.org/1999/xhtml' );
     for my $meta ( $dom->findnodes('//meta[@http-equiv!=""]') ) {
@@ -42,6 +40,12 @@ sub html2xml {
   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 $xhtml
 EOT
+}
+
+sub html2xml {
+    my ( $self, $html, $encoding, $level ) = @_;
+    my $dom = $self->html2dom( $html, $encoding );
+    $self->dom2xml($dom, $level);
 }
 
 sub _tidy_dom {
@@ -124,7 +128,7 @@ HTML::Tidy::libXML - Tidy HTML via XML::LibXML
 
 =head1 VERSION
 
-$Id: libXML.pm,v 0.1 2009/02/21 11:18:30 dankogai Exp dankogai $
+$Id: libXML.pm,v 0.2 2009/02/21 11:47:58 dankogai Exp dankogai $
 
 =head1 SYNOPSIS
 
@@ -172,14 +176,26 @@ Here is the better practice.
   die $res->status_line unless $res->is_success;
   my $dom = $tidy->html2dom($res->content, $res->encoding);
 
+
+=head2 dom2xml
+
+  my $tidy->com2xml($dom, $level);
+
+
+Tidies C<$dom> which is L<XML::LibXML::Document> object and returns an
+XML string.  If the level is ommitted, the resulting XML is good
+enough as XML -- valid but not very browser compliant (like C<< <br
+clear=""> >>, C<< <a name="here" /> >>).  Set level to 1 or above for
+tidier, browser-compliant xhtml.
+
 =head2 html2xml
 
-  my $xml = $tidy->html2dom($string, $encoding, $level)
+  my $xml = $tidy->html2xml($html, $encoding, $level)
 
-Tidies C<$string> and returns it.  If the level is ommitted, the
-resulting XML is good enough as XML -- valid but not very browser
-compliant (like C<< <br clear=""> >>, C<< <a name="here" /> >>).  Set
-level to 1 or above for tidier, browser-compliant xhtml.
+Which is the shorthand for:
+
+  my $dom = $tidy->html2dom($html, $encoding);
+  my $xml = $tidy->dom2xml($dom, $level);
 
 =head2 clean
 
